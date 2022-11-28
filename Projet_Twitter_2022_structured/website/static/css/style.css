@@ -1,0 +1,19 @@
+.tweet-navbar{
+    background-color: #1DA1F2;
+}
+
+.btn-primary{
+    background-color: #1DA1F2;
+    border-color: #1892de;
+}
+.btn-primary:hover{
+    background-color: #1892de;
+    border-color: #1892de;
+}
+
+.form-signin {
+    width: 100%;
+    max-width: 330px;
+    padding: 15px;
+    margin: 0 auto;
+}

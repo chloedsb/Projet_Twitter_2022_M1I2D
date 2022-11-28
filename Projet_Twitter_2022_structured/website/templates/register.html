@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Twitter</title>
+    <link rel="icon" type="image/x-icon" href="{{url_for('static', filename='images/Twitter-logo.svg.png')}}">
+    <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap.min.css')}}">
+    <link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
+</head>
+
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand ms-3" href="#">
+                <img src="{{url_for('static', filename='images/Twitter-logo.svg.png')}}" alt="Bootstrap" width="30" height="24">
+            </a>
+        </div>
+    </nav>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+{% for category, msg in messages %}
+    {% if category == "error" %}
+    <div class="alert alert-danger alter-dismissable fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="close" data-dismiss="alert">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    {% else %}
+    <div class="alert alert-success alter-dismissable fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="close" data-dismiss="alert">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    {% endif %}
+{% endfor %}
+{% endif %}
+{% endwith %}
+<div class="row justify-content-md-center pt-3">
+    <div class="col-6">
+        <h1>Please register</h1>
+        <div class="my-3 p-3 bg-body rounded shadow-sm">
+    <form action="#" method="post">
+            <div class="mb-3">
+            <label for="validationDefaultUsername" class="form-label">Username</label>
+            <div class="input-group">
+                <span class="input-group-text" id="inputGroupPrepend2">@</span>
+                <input name="usr_name" type="text" class="form-control" id="validationDefaultUsername"  aria-describedby="inputGroupPrepend2" maxlength="24" required>
+            </div>
+            </div>
+            <div class="mb-3">
+                <label for="exampleInputEmail1" class="form-label">Email address</label>
+                <input name="mail" type="email" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" maxlength="64">
+                <div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div>
+            </div>
+            <div class="mb-3">
+                <label for="exampleInputPassword1" class="form-label">Password</label>
+                <input name="pwd" type="password" class="form-control" id="exampleInputPassword1" maxlength="64">
+            </div>
+            <div class="mb-3">
+                <label for="exampleInputPassword2" class="form-label">Confirm password</label>
+                <input name="pwd2" type="password" class="form-control" id="exampleInputPassword2">
+            </div>
+            <div class="col-12">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" value="" id="invalidCheck2" maxlength="64" required>
+                <label class="form-check-label" for="invalidCheck2">
+                Agree to terms and conditions
+                </label>
+            </div>
+            </div>
+            <div class="col-12">
+            <button class="btn btn-primary mt-2" type="submit">Register on Twitter</button>
+            </div>
+      </form>
+</div>
+</div>
+</div>
+</body>
+<script src="{{url_for('static', filename='js/bootstrap.bundle.min.js')}}"></script>
+
+</html>

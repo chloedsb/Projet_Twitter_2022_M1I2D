@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Twitter</title>
+    <link rel="icon" type="image/x-icon" href="{{url_for('static', filename='images/Twitter-logo.svg.png')}}">
+    <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap.min.css')}}">
+    <link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
+    <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap-icons.css')}}">
+</head>
+
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg tweet-navbar">
+        <div class="container-fluid">
+            <a class="navbar-brand ms-3" href="#">
+                <img src="{{url_for('static', filename='images/logo.png')}}" alt="Bootstrap" width="30" height="24">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse ms-4" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link text-light" href="/feed">Feed</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-light" href="/profile">My Profile</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-light" href="/logout">Logout</a>
+                    </li>
+                </ul>
+                <form class="d-flex" role="search" action="/search" method="post">
+                    <input name="username" width="200" class="form-control me-2" type="search" placeholder="Search a user" aria-label="Search">
+                </form>
+            </div>
+
+        </div>
+    </nav>
+    {% block name %}{% endblock %}
+</body>
+<script src="{{url_for('static', filename='js/bootstrap.bundle.min.js')}}"></script>
+
+</html>

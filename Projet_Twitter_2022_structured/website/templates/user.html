@@ -1,0 +1,143 @@
+{% extends "navbar.html" %}
+{% block name %}
+
+<!-- Modal -->
+<div class="modal fade" id="exampleModal3" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="exampleModalLabel">Are you sure you want to delete your account?</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        This action is irreversible.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-success" data-bs-dismiss="modal">Cancel</button>
+        <a href="/delete_account" role="button" class="btn btn-danger">Confirm</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="exampleModalLabel">Followers</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <ul class="list-group">
+                {% for f in followers %}
+                <li class="list-group-item">
+            <a href="/profile/{{f.username}}">@{{f.username}}</a></li>
+            {% endfor %}
+              </ul>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal fade" id="exampleModal2" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h1 class="modal-title fs-5" id="exampleModalLabel">Following</h1>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <ul class="list-group">
+                {% for f in followings %}
+                <li class="list-group-item">
+            <a href="/profile/{{f.username}}">@{{f.username}}</a></li>
+            {% endfor %}
+              </ul>
+            
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+<div class="container">
+    <div class="row justify-content-md-center pt-3">
+        <div class="col-10">
+            <h1>@{{usr.username}}</h1>
+            <div class="d-flex justify-content-start">
+                <p href="#" class="d-block ms-2">{{followers|length}}</p>
+                <a href="#" class="link-secondary text-decoration-none ms-1" data-bs-toggle="modal" data-bs-target="#exampleModal"> Followers</a>
+                <p href="#" class="d-block text-decoration-none mx-1"> </p>
+                <p href="#" class="d-block ">{{followings|length}} </p>
+                <a href="#" class="link-secondary text-decoration-none mx-1" data-bs-toggle="modal" data-bs-target="#exampleModal2">Following</a>
+            </div>
+            {% if b %}
+        {% if is_following  %}
+        <form method="get" action="/unfollow/{{usr.username}}">
+            <button type="submit" class="btn btn-primary">Unfollow</button>
+        </form>
+        {%- else -%}
+        <form method="get" action="/follow/{{usr.username}}">
+            <button type="submit" class="btn btn-primary">Follow</button>
+        </form>
+        {% endif %}
+        {% endif %}
+        </div>
+        
+    </div>
+
+
+    <div class="row justify-content-md-center pt-2">
+        <div class="col col-md-10">
+            <div class="my-3 p-3 bg-body rounded shadow-sm">
+                <h6 class="border-bottom pb-2 mb-0">
+                    {% if not b %}My{% endif %}Tweets</h6>
+                {% for i in range(tweets|length) %}
+                    <div class="text-muted pt-3">
+                        <div class="pb-1 mb-0 small lh-sm border-bottom">
+                            <strong>
+                                <p>{{tweets[i].title}}</p>
+                            </strong>
+                            <div class="container-fluid">
+                                <p class="text-justify">  
+                                    {{tweets[i].content}}
+                                </p>
+                            </div>
+                            <div class="d-flex justify-content-start">
+                                <a href="/profile/{{usr.username}}" class="d-block text-decoration-none">@{{usr.username}}</a>
+                                <p href="#" class="d-block text-decoration-none mx-1">-</p>
+                                <p href="#" class="d-block text-decoration-none">{{tweets[i].date.strftime("%d/%m/%y %H:%M")}}</p>
+                                <p href="#" class="d-block text-decoration-none mx-5">-</p>
+                                <a href="/comments/{{tweets[i].id}}" class="text-decoration-none mx-3"><i class="bi bi-chat-text"></i> Comments</a>
+                                {% if not b %}
+                                <a href="/delete/{{tweets[i].id}}" class="text-decoration-none mx-3"><i class="bi bi-trash3"></i></a>
+                                {% else %}
+                                  {% if tweets[i].liked_by_current() %}
+                                        <a href="/unlike/{{tweets[i].id}}?redirect={{usr.username}}" class="text-decoration-none mx-3"><i class="bi bi-suit-heart-fill"></i> Unlike</a>
+                                    {% else %}
+                                        <a href="/like/{{tweets[i].id}}?redirect={{usr.username}}" class="text-decoration-none mx-3"><i class="bi bi-suit-heart"></i> Like</a>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+        </div>
+        {% if not b %}
+        <div class="col col-md-10">
+            <a class="btn btn-outline-primary" role="button" data-bs-toggle="modal" data-bs-target="#exampleModal3">Delete your account</a>
+        </div>
+        {% endif %}
+    </div>
+    
+    
+</div>
+
+{% endblock %}
