@@ -1,6 +1,8 @@
-from . import db, dictFollowing, dictFollowed, dictUIDToUser, dictUsernameToUID, dictTweets, dictComments, dictIDToTwt
+from . import db, dictFollowing, dictFollowed, dictUIDToUser, dictUsernameToUID, dictTweets, dictComments, dictIDToTwt, dictWords
 from sqlalchemy.sql import func
 from flask_login import UserMixin, current_user
+from datetime import datetime
+import re
 
 class User(db.Model, UserMixin):
     __tablename__ = "user"
@@ -47,6 +49,20 @@ class User(db.Model, UserMixin):
 
     def get_followers(self):
         return dictFollowed[self.id].keys()
+
+    def get_suggestions(self):
+        #Return a list of usernames from people you might follow
+        #Followees from your followees you don't already follow
+        #Doit etre rapide ! --> à changer
+        sugg = []
+        followings = dictFollowing[self.id].keys()
+        for uid in followings:
+            f = list(dictFollowing[uid].keys())
+            for f_2 in f:
+                if (f_2 not in sugg) and (f_2 not in followings):
+                    sugg.append(dictUIDToUser[f_2].username)
+        return sugg
+
 
 
 
@@ -102,13 +118,15 @@ class Tweet(db.Model):
     def retweet(self, uid):
         rt = Retweet(
             t_id=self.id,
-            uid=uid
+            uid=uid,
+            date= datetime.now()
         )
         rt.add_to_db()
         self.dictRetweets[uid] = rt
+    
+    def retweeted_by_current(self):
+        return current_user.id in self.dictRetweets.keys()
 
-    def unretweet(self, uid):
-        self.dictRetweets.pop(uid).delete_from_db()
 
 
     @staticmethod
@@ -118,8 +136,12 @@ class Tweet(db.Model):
             dictTweets[twt.uid].append(twt) #idem ?
             dictComments[twt.id] = [] #plutot linked list ?
             dictIDToTwt[twt.id] = twt
-
-
+            #Remplir dictWords
+            words = re.findall(r'\w+', twt.content)
+            for word in words:
+                if word not in dictWords:
+                    dictWords[word] = []
+                dictWords[word].append(twt)
 
     def add_to_db(self):
         db.session.add(self)

@@ -14,6 +14,7 @@ dictUsernameToUID = dict()
 dictTweets = dict()
 dictComments = dict()
 dictIDToTwt = dict()
+dictWords = dict()
 
 def create_app():
     app = Flask(__name__)
