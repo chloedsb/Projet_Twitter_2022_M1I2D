@@ -1,4 +1,4 @@
-from . import db, dictFollow, dictUIDToUser, dictUsernameToUID, dictTweets, dictComments, dictIDToTwt
+from . import db, dictFollowing, dictFollowed, dictUIDToUser, dictUsernameToUID, dictTweets, dictComments, dictIDToTwt
 from sqlalchemy.sql import func
 from flask_login import UserMixin, current_user
 
@@ -15,7 +15,8 @@ class User(db.Model, UserMixin):
         for u in us:
             dictUIDToUser[u.id] = u
             dictUsernameToUID[u.username] = u.id
-            dictFollow[u.id] = dict()
+            dictFollowing[u.id] = dict()
+            dictFollowed[u.id] = dict()
             dictTweets[u.id] = []
 
     def add_to_db(self):
@@ -27,34 +28,25 @@ class User(db.Model, UserMixin):
         db.session.commit()
 
     def follow(self, uid, f):
-        if not (uid in dictFollow[self.id]):
-            dictFollow[self.id][uid] = [0, 0]
-        dictFollow[self.id][uid][0] = f
-        if not (self.id in dictFollow[uid]):
-            dictFollow[uid][self.id] = [0, 0]
-        dictFollow[uid][self.id][1] = f
+        dictFollowing[self.id][uid] = f
+        dictFollowed[uid][self.id] = f
 
     def unfollow(self, uid):
-        dictFollow[current_user.id][uid][0].delete_from_db()
-        dictFollow[self.id][uid][0] = 0
-        if dictFollow[self.id][uid] == [0, 0]:
-            dictFollow[self.id].pop(uid)
-        dictFollow[uid][self.id][1] = 0
-        if dictFollow[uid][self.id] == [0, 0]:
-            dictFollow[uid].pop(self.id)
+        dictFollowing[current_user.id][uid].delete_from_db()
+        dictFollowing[self.id].pop(uid)
+        dictFollowed[uid].pop(self.id)
 
     def is_following(self, uid):
-        if not (uid in dictFollow[self.id]):
-            return False
-        return dictFollow[self.id][uid][0] != 0
+        return uid in dictFollowing[self.id]
 
     def is_followed(self, uid):
-        if not (uid in dictFollow[self.id]):
-            return False
-        return dictFollow[self.id][uid][1] != 0
+        return uid in dictFollowed[self.id]
 
-    def get_relations(self):
-        return dictFollow[self.id]
+    def get_following(self):
+        return dictFollowing[self.id].keys()
+
+    def get_followers(self):
+        return dictFollowed[self.id].keys()
 
 
 
@@ -87,13 +79,36 @@ class Tweet(db.Model):
     content = db.Column(db.String(2048))
     date = db.Column(db.DateTime(timezone=True), default=func.now())
 
-    listLikes = []
+    dictLikes = dict()
+    dictRetweets = dict()
 
     def liked_by_current(self):
-        for like in self.listLikes:
-            if like.uid == current_user.id:
-                return True
-        return False
+        return self.liked_by(current_user.id)
+
+    def liked_by(self, uid):
+        return uid in self.dictLikes
+
+    def like(self, uid):
+        like = Like(
+            t_id=self.id,
+            uid=uid
+        )
+        like.add_to_db()
+        self.dictLikes[uid] = like
+
+    def unlike(self, uid):
+        self.dictLikes.pop(uid).delete_from_db()
+
+    def retweet(self, uid):
+        rt = Retweet(
+            t_id=self.id,
+            uid=uid
+        )
+        rt.add_to_db()
+        self.dictRetweets[uid] = rt
+
+    def unretweet(self, uid):
+        self.dictRetweets.pop(uid).delete_from_db()
 
 
     @staticmethod
@@ -151,9 +166,12 @@ class Retweet(db.Model):
     uid = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     date = db.Column(db.DateTime(timezone=True), default=func.now())
 
-    #@staticmethod
-    """def loadRetweetData():
-        """
+    @staticmethod
+    def loadRetweetData():
+        rts = Retweet.query.all()
+        for rt in rts:
+            twt = dictIDToTwt[rt.t_id]
+            twt.retweet(rt.uid)
 
     def add_to_db(self):
         db.session.add(self)
@@ -173,9 +191,8 @@ class Like(db.Model):
     def loadLikeData():
         likes = Like.query.all()
         for like in likes:
-            twts = Tweet.query.filter_by(id=like.t_id).all()
-            for twt in twts:
-                twt.listLikes.append(like)
+            twt = dictIDToTwt[like.t_id]
+            twt.like(like.uid)
 
     def add_to_db(self):
         db.session.add(self)

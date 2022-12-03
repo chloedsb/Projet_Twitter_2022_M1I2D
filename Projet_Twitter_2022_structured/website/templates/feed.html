@@ -75,7 +75,7 @@
                                     {% else %}
                                     <a href="/like/{{tweets[i].id}}?redirect=feed" class="text-decoration-none me-1"><i class="bi bi-suit-heart"></i> Like</a>
                                     {% endif %}
-                                    <p href="#" class="d-block text-decoration-none me-3">{{tweets[i].listLikes|length}}</p>
+                                    <p href="#" class="d-block text-decoration-none me-3">{{tweets[i].dictLikes|length}}</p>
                                     <a href="#" class="text-decoration-none me-1 font-weight-bold"><i class="bi-repeat-1"></i> Retweet</a>
                                     <p href="#" class="d-block text-decoration-none ">0</p>
                                     {% endif %}

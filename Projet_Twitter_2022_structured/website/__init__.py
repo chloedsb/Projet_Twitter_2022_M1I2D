@@ -6,7 +6,8 @@ from flask_login import LoginManager
 db = SQLAlchemy(session_options={"expire_on_commit": False})
 #session_options=
 
-dictFollow = dict()
+dictFollowing = dict()
+dictFollowed = dict()
 dictUIDToUser = dict()
 dictUsernameToUID = dict()
 #dictTweets sera = {uid:LinkedList(Tweets de uid)} peut etre

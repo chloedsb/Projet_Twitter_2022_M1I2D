@@ -1,6 +1,6 @@
 from flask import Blueprint, session, request, redirect, url_for, flash, render_template
 from .models import User, Tweet, Follow
-from . import dictFollow, dictUIDToUser, dictUsernameToUID, dictTweets
+from . import dictFollowing, dictFollowed, dictUIDToUser, dictUsernameToUID, dictTweets
 from flask_login import login_user, login_required, logout_user, current_user
 import re
 #from werkzeug.security import generate_password_hash, check_password_hash
@@ -104,7 +104,8 @@ def register():
             new_user.add_to_db()
             dictUIDToUser[new_user.id] = new_user
             dictUsernameToUID[new_user.username] = new_user.id
-            dictFollow[new_user.id] = dict()
+            dictFollowing[new_user.id] = dict()
+            dictFollowed[new_user.id] = dict()
             dictTweets[new_user.id] = []
             #User is logged in
             login_user(new_user, remember=True)
