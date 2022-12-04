@@ -6,6 +6,11 @@
     background-color: #1DA1F2;
     border-color: #1892de;
 }
+
+.bg-secondary{
+    background-color: #fafafa!important;
+}
+
 .btn-primary:hover{
     background-color: #1892de;
     border-color: #1892de;

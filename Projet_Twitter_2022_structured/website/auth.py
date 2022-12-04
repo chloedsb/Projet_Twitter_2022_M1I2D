@@ -1,4 +1,6 @@
 from flask import Blueprint, session, request, redirect, url_for, flash, render_template
+
+from .linkedLists import linked_list
 from .models import User, Tweet, Follow
 from . import dictFollowing, dictFollowed, dictUIDToUser, dictUsernameToUID, dictTweets
 from flask_login import login_user, login_required, logout_user, current_user
@@ -75,7 +77,7 @@ def register():
         pwd = request.form["pwd"]
         pwd_c = request.form["pwd2"]
         #Steps to check the entries
-        if dictUsernameToUID[usr_name]:
+        if usr_name in dictUsernameToUID:
             flash("Username already exists, choose another", category="error")
             return redirect(url_for("auth.register"))
         if User.query.filter_by(email=mail).first():
@@ -106,7 +108,7 @@ def register():
             dictUsernameToUID[new_user.username] = new_user.id
             dictFollowing[new_user.id] = dict()
             dictFollowed[new_user.id] = dict()
-            dictTweets[new_user.id] = []
+            dictTweets[new_user.id] = linked_list()
             #User is logged in
             login_user(new_user, remember=True)
             flash("You are succesfully registered", category="success")

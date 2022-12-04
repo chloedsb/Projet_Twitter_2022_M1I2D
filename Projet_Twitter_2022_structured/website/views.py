@@ -58,7 +58,7 @@ def feed():
             print("likes:", twt.dictLikes)
             print("retweets:", twt.dictRetweets)
         sugg = current_user.get_suggestions()
-        return render_template("feed.html", user=current_user, tweets=sorted_tweets, dictUIDToUser=dictUIDToUser, suggestions=sugg)
+        return render_template("feed.html", user=current_user, tweets=sorted_tweets, dictUIDToUser=dictUIDToUser, suggestions=sugg, dictIDToTwt=dictIDToTwt)
     if request.method == "POST":
         tweet_title = request.form["title"]
         tweet_content = request.form["tweet"]
@@ -125,7 +125,7 @@ def user(usr):
     for i in range(tweets.size):
         tweetsList[i] = twt.data
         twt = twt.next
-    return render_template("user.html",b=b, tweets=tweetsList, usr=user, is_following=value, followings=followings_users, followers=followers_users)
+    return render_template("user.html",b=b, tweets=tweetsList, usr=user, is_following=value, followings=followings_users, followers=followers_users, dictIDToTwt=dictIDToTwt, dictUIDToUser=dictUIDToUser)
     
 
 @views.route("/comments/<twt_id>", methods=["GET","POST"])
@@ -142,7 +142,7 @@ def comments(twt_id):
             usernames.append(dictUIDToUser[com.uid].username)
             comments[i] = com
             i+=1
-        return render_template("comments.html", twt=tweet, usr=username, cmts=comments, usrs=usernames)
+        return render_template("comments.html", twt=tweet, cmts=comments, dictUIDToUser=dictUIDToUser)
     if request.method == "POST":
         comment = request.form["comment"]
         new_com = Tweet(
@@ -181,8 +181,10 @@ def retweet(twt_id):
     dir = request.args.get('redirect')
     if dir == "feed":
         return redirect(url_for("views.feed"))
-    else:
+    elif dir in dictUsernameToUID:
         return redirect(url_for("views.user", usr=dir))
+    else:
+        return redirect(url_for("views.comments", twt_id=dir))
 
 @views.route("/unretweet/<twt_id>")
 @login_required
@@ -193,8 +195,10 @@ def unretweet(twt_id):
     dir = request.args.get('redirect')
     if dir == "feed":
         return redirect(url_for("views.feed"))
-    else:
+    elif dir in dictUsernameToUID:
         return redirect(url_for("views.user", usr=dir))
+    else:
+        return redirect(url_for("views.comments", twt_id=dir))
 
 @views.route("/like/<twt_id>")
 @login_required
@@ -205,8 +209,10 @@ def like(twt_id):
     dir = request.args.get('redirect')
     if dir == "feed":
         return redirect(url_for("views.feed"))
-    else:
+    elif dir in dictUsernameToUID:
         return redirect(url_for("views.user", usr=dir))
+    else:
+        return redirect(url_for("views.comments", twt_id=dir))
 
 @views.route("/unlike/<twt_id>")
 @login_required
@@ -217,8 +223,11 @@ def unlike(twt_id):
     dir = request.args.get('redirect')
     if dir == "feed":
         return redirect(url_for("views.feed"))
-    else:
+    elif dir in dictUsernameToUID:
         return redirect(url_for("views.user", usr=dir))
+    else:
+        return redirect(url_for("views.comments", twt_id=dir))
+        
 
 @views.route("/profile")
 def profile():

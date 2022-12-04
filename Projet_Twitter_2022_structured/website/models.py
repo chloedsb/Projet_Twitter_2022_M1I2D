@@ -159,10 +159,10 @@ class Tweet(db.Model):
         self.dictRetweets[uid] = rt
 
     def unretweet(self, uid):
-        self.dictLikes.pop(uid).delete_from_db()
+        self.dictRetweets.pop(uid).delete_from_db()
 
     def retweeted_by_current(self):
-        return self.liked_by(current_user.id)
+        return self.retweeted_by(current_user.id)
 
     def retweeted_by(self, uid):
         return uid in self.dictRetweets
