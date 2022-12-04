@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
-from .models import User, Tweet, Follow, Comment, Like, Retweet
-from . import dictUIDToUser, dictUsernameToUID, dictTweets, dictComments, dictIDToTwt, dictWords
+from .models import User, Tweet, Follow, Like, Retweet
+from . import dictUIDToUser, dictUsernameToUID, dictTweets, dictIDToTwt, dictWords
 from queue import PriorityQueue
 from flask_login import login_required, current_user
 from datetime import datetime
@@ -28,19 +28,19 @@ def search():
     
 
 def sort_tweets(lists):
-    print(lists)
+    #print(lists)
     output = []
     q = PriorityQueue()
     for l in lists:
         if l:
-            q.put((-(l[0].date.timestamp()), (l, 0, len(l))))
+            q.put((-(l.head.data.date.timestamp()), l.head))
     while not q.empty():
-        val, (l, index, lenght) = q.get()
-        #print(val, (l, index, lenght), sep="\n")
-        output.append(l[index])
-        index+=1
-        if index<lenght:
-            q.put((-(l[index].date.timestamp()), (l, index, lenght)))
+        val, twt = q.get()
+        #print((val, (l, index, lenght)), sep="\n")
+        output.append(twt.data)
+        if twt.has_next():
+            q.put((-(twt.next.data.date.timestamp()), twt.next))
+    #print(output)
     return output
 
 
@@ -54,22 +54,23 @@ def feed():
             tweets.append(dictTweets[uid])
         tweets.append(dictTweets[current_user.id])
         sorted_tweets = sort_tweets(tweets)
-        sugg = current_user.get_suggestions()
         for twt in sorted_tweets:
-            print(twt.dictRetweets)
+            print("likes:", twt.dictLikes)
+            print("retweets:", twt.dictRetweets)
+        sugg = current_user.get_suggestions()
         return render_template("feed.html", user=current_user, tweets=sorted_tweets, dictUIDToUser=dictUIDToUser, suggestions=sugg)
     if request.method == "POST":
         tweet_title = request.form["title"]
         tweet_content = request.form["tweet"]
         new_tweet = Tweet(
             uid = current_user.id,
+            pid=0,
             title = tweet_title,
             content = tweet_content,
             date = datetime.now()
         )
         new_tweet.add_to_db()
         dictTweets[current_user.id].append(new_tweet)
-        dictComments[new_tweet.id] = []
         dictIDToTwt[new_tweet.id] = new_tweet
         words = re.findall(r'\w+', new_tweet.content)
         for word in words:
@@ -119,61 +120,76 @@ def user(usr):
         followings_users.append(dictUIDToUser[uid])
     for uid in followers:
         followers_users.append(dictUIDToUser[uid])
-    return render_template("user.html",b=b, tweets=tweets, usr=user, is_following=value, followings=followings_users, followers=followers_users)
+    tweetsList = [None] * tweets.size
+    twt = tweets.head
+    for i in range(tweets.size):
+        tweetsList[i] = twt.data
+        twt = twt.next
+    return render_template("user.html",b=b, tweets=tweetsList, usr=user, is_following=value, followings=followings_users, followers=followers_users)
     
 
 @views.route("/comments/<twt_id>", methods=["GET","POST"])
 @login_required
 def comments(twt_id):
+    twt_id = int(twt_id)
     if request.method == "GET":
-        tweet = Tweet.query.filter_by(id=twt_id).first() #à remplacer
+        tweet = dictIDToTwt[twt_id]
         username = dictUIDToUser[tweet.uid].username
-        comments = dictComments[int(twt_id)]
+        comments = [None] * len(tweet.comments)
         usernames = []
-        for com in comments:
-            usernames.append(dictUIDToUser[int(com.uid)].username)
+        i=0
+        for com in tweet.comments:
+            usernames.append(dictUIDToUser[com.uid].username)
+            comments[i] = com
+            i+=1
         return render_template("comments.html", twt=tweet, usr=username, cmts=comments, usrs=usernames)
     if request.method == "POST":
         comment = request.form["comment"]
-        new_com = Comment(
+        new_com = Tweet(
             uid = current_user.id,
-            t_id = twt_id,
+            pid = twt_id,
             content = comment,
-            date = datetime.now()
+            date = datetime.now(),
+            title = ""
         )
         new_com.add_to_db()
-        dictComments[int(twt_id)].append(new_com)
+        dictIDToTwt[twt_id].comments.add(new_com)
+        dictTweets[current_user.id].append(new_com)
+        dictIDToTwt[new_com.id] = new_com
+        words = re.findall(r'\w+', new_com.content)
+        for word in words:
+            if word not in dictWords:
+                dictWords[word] = []
+            dictWords[word].append(new_com)
         return redirect(url_for("views.comments", twt_id=twt_id))
 
-def delete_(twt_id):
-    tweet = dictIDToTwt[int(twt_id)]
-    #Delete all the retweets object from db & from ds
-    #...
-    #Delete tweet from dictWords
-    words = re.findall(r'\w+', tweet.content)
-    for word in words:
-        dictWords[word].remove(tweet)
-    #Deletions
-    dictTweets[tweet.uid].remove(tweet)
-    coms = dictComments.pop(int(twt_id))
-    dictIDToTwt.pop(int(twt_id))
-    for com in coms:
-        com.delete_from_db()
-    for uid, like in tweet.dictLikes.items():
-        like.delete_from_db()
-    tweet.delete_from_db()
+
 
 @views.route("/delete/<twt_id>")
 @login_required
 def delete(twt_id):
-    delete_(twt_id)
+    twt_id = int(twt_id)
+    dictIDToTwt[twt_id].delete()
     return redirect(url_for("views.feed"))
 
 @views.route("/retweet/<twt_id>")
 @login_required
 def retweet(twt_id):
-    twt = dictIDToTwt[int(twt_id)]
+    twt_id = int(twt_id)
+    twt = dictIDToTwt[twt_id]
     twt.retweet(current_user.id)
+    dir = request.args.get('redirect')
+    if dir == "feed":
+        return redirect(url_for("views.feed"))
+    else:
+        return redirect(url_for("views.user", usr=dir))
+
+@views.route("/unretweet/<twt_id>")
+@login_required
+def unretweet(twt_id):
+    twt_id = int(twt_id)
+    twt = dictIDToTwt[twt_id]
+    twt.unretweet(current_user.id)
     dir = request.args.get('redirect')
     if dir == "feed":
         return redirect(url_for("views.feed"))
@@ -183,7 +199,8 @@ def retweet(twt_id):
 @views.route("/like/<twt_id>")
 @login_required
 def like(twt_id):
-    tweet = dictIDToTwt[int(twt_id)]
+    twt_id = int(twt_id)
+    tweet = dictIDToTwt[twt_id]
     tweet.like(current_user.id)
     dir = request.args.get('redirect')
     if dir == "feed":
@@ -194,7 +211,8 @@ def like(twt_id):
 @views.route("/unlike/<twt_id>")
 @login_required
 def unlike(twt_id):
-    tweet = dictIDToTwt[int(twt_id)]
+    twt_id = int(twt_id)
+    tweet = dictIDToTwt[twt_id]
     tweet.unlike(current_user.id)
     dir = request.args.get('redirect')
     if dir == "feed":
@@ -218,7 +236,7 @@ def delete_account():
         if state[1] != 0:
             dictUIDToUser[uid].unfollow(current_user.id)
     for twt in tweets:
-        delete_(twt.id)
+        dictIDToTwt[twt.id].delete()
     dictUsernameToUID.pop(current_user.username)
     current_user.delete_from_db()
     dictUIDToUser.pop(current_user.id)

@@ -1,8 +1,14 @@
-from . import db, dictFollowing, dictFollowed, dictUIDToUser, dictUsernameToUID, dictTweets, dictComments, dictIDToTwt, dictWords
+from sqlalchemy import orm
+
+from . import db, dictFollowing, dictFollowed, dictUIDToUser, dictUsernameToUID, dictTweets, dictComments, dictIDToTwt, \
+    dictWords, dictTwtIdToNode
 from sqlalchemy.sql import func
 from flask_login import UserMixin, current_user
 from datetime import datetime
+from .linkedLists import *
+
 import re
+
 
 class User(db.Model, UserMixin):
     __tablename__ = "user"
@@ -10,6 +16,12 @@ class User(db.Model, UserMixin):
     username = db.Column(db.String(24))
     email = db.Column(db.String(64))
     pwd = db.Column(db.String(64))
+
+    def __hash__(self):
+        return self.id
+
+    def __eq__(self, other):
+        return self.id == other.id
 
     @staticmethod
     def loadUserData():
@@ -19,7 +31,7 @@ class User(db.Model, UserMixin):
             dictUsernameToUID[u.username] = u.id
             dictFollowing[u.id] = dict()
             dictFollowed[u.id] = dict()
-            dictTweets[u.id] = []
+            dictTweets[u.id] = linked_list()
 
     def add_to_db(self):
         db.session.add(self)
@@ -51,19 +63,23 @@ class User(db.Model, UserMixin):
         return dictFollowed[self.id].keys()
 
     def get_suggestions(self):
-        #Return a list of usernames from people you might follow
-        #Followees from your followees you don't already follow
-        #Doit etre rapide ! --> à changer
-        sugg = []
-        followings = dictFollowing[self.id].keys()
-        for uid in followings:
-            f = list(dictFollowing[uid].keys())
-            for f_2 in f:
-                if (f_2 not in sugg) and (f_2 not in followings):
-                    sugg.append(dictUIDToUser[f_2].username)
+        # Return a list of usernames from people you might follow
+        # Followees from your followees you don't already follow
+        sugg = set()
+        for uid in dictFollowing[self.id]:
+            for user in dictFollowing[uid]:
+                if user not in dictFollowing[self.id]:
+                    sugg.add(dictUIDToUser[user].username)
         return sugg
 
-
+    def get_followers_of_followers(self):
+        #Question 2
+        fof = set()
+        for uid in dictFollowed[self.id]:
+            for user in dictFollowed[uid]:
+                if user not in dictFollowed[self.id]:
+                    fof.add(dictUIDToUser[user].username)
+        return fof
 
 
 class Follow(db.Model):
@@ -71,7 +87,6 @@ class Follow(db.Model):
     f_id = db.Column(db.Integer, primary_key=True)
     id_follower = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     id_followee = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-
 
     @staticmethod
     def loadFollowData():
@@ -87,16 +102,35 @@ class Follow(db.Model):
         db.session.delete(self)
         db.session.commit()
 
+
 class Tweet(db.Model):
     __tablename__ = "tweet"
     id = db.Column("id", db.Integer, primary_key=True, nullable=False)
     uid = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    pid = db.Column(db.Integer, db.ForeignKey("tweet.id"), nullable=False)
     title = db.Column(db.String(256))
     content = db.Column(db.String(2048))
     date = db.Column(db.DateTime(timezone=True), default=func.now())
 
-    dictLikes = dict()
-    dictRetweets = dict()
+    def __init__(self, uid, pid, title, content, date):
+        self.init_on_load()
+        super(Tweet, self).__init__(uid=uid, pid=pid, title=title, content=content, date=date)
+
+    def __hash__(self):
+        return self.id
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+    @orm.reconstructor
+    def init_on_load(self):
+        # Instance variables during the first load
+        self.dictLikes = dict()
+        self.dictRetweets = dict()
+        self.comments = set()
+
+    def is_a_comment(self):
+        return not (self.pid == 0)
 
     def liked_by_current(self):
         return self.liked_by(current_user.id)
@@ -119,58 +153,62 @@ class Tweet(db.Model):
         rt = Retweet(
             t_id=self.id,
             uid=uid,
-            date= datetime.now()
+            date=datetime.now()
         )
         rt.add_to_db()
         self.dictRetweets[uid] = rt
-    
+
+    def unretweet(self, uid):
+        self.dictLikes.pop(uid).delete_from_db()
+
     def retweeted_by_current(self):
-        return current_user.id in self.dictRetweets.keys()
+        return self.liked_by(current_user.id)
 
+    def retweeted_by(self, uid):
+        return uid in self.dictRetweets
 
+    def delete(self, cascade=False):
+        # Delete all the retweets object from db & from ds
+        # ...
+        # Delete tweet from dictWords
+        words = re.findall(r'\w+', self.content)
+        for word in words:
+            dictWords[word].remove(self)
+            if not dictWords[word]:
+                dictWords.pop(word)
+        # Deletions
+        for com in self.comments:
+            com.delete(True)
+        if self.is_a_comment():
+            tweet = dictIDToTwt[self.pid]
+            if not cascade: tweet.comments.remove(self)
+        for uid, like in self.dictLikes.items():
+            like.delete_from_db()
+        for uid, rt in self.dictRetweets.items():
+            rt.delete_from_db()
+        dictIDToTwt.pop(self.id)
+
+        node = dictTwtIdToNode[self.id]
+        l = dictTweets[self.uid]
+        l.remove(node)
+        self.delete_from_db()
 
     @staticmethod
     def loadTweetData():
         twts = Tweet.query.all()
         for twt in twts:
-            dictTweets[twt.uid].append(twt) #idem ?
-            dictComments[twt.id] = [] #plutot linked list ?
+            dictTweets[twt.uid].append(twt)  # idem ?
+            dictTwtIdToNode[twt.id] = dictTweets[twt.uid].head
             dictIDToTwt[twt.id] = twt
-            #Remplir dictWords
+            if twt.is_a_comment():
+                dictIDToTwt[twt.pid].comments.add(twt)
+                print(twt.content)
+            # Remplir dictWords
             words = re.findall(r'\w+', twt.content)
             for word in words:
                 if word not in dictWords:
                     dictWords[word] = []
                 dictWords[word].append(twt)
-
-    def add_to_db(self):
-        db.session.add(self)
-        db.session.commit()
-
-    def delete_from_db(self):
-        db.session.delete(self)
-        db.session.commit()
-
-    def __eq__(self, other):
-        """Overrides the default implementation"""
-        return self.id == other.id
-
-    
-
-class Comment(db.Model):
-    __tablename__ = "comment"
-    id = db.Column("id", db.Integer, primary_key=True, nullable=False)
-    uid = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    t_id = db.Column(db.Integer, db.ForeignKey("tweet.id"), nullable=False)
-    content = db.Column(db.String(400))
-    date = db.Column(db.DateTime(timezone=True), default=func.now())
-
-
-    @staticmethod
-    def loadCommentData():
-        cmts = Comment.query.all()
-        for cmt in cmts:
-            dictComments[cmt.t_id].append(cmt)
 
     def add_to_db(self):
         db.session.add(self)
@@ -202,6 +240,7 @@ class Retweet(db.Model):
     def delete_from_db(self):
         db.session.delete(self)
         db.session.commit()
+
 
 class Like(db.Model):
     __tablename__ = "like"

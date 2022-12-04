@@ -15,6 +15,7 @@ dictTweets = dict()
 dictComments = dict()
 dictIDToTwt = dict()
 dictWords = dict()
+dictTwtIdToNode = dict()
 
 def create_app():
     app = Flask(__name__)
@@ -31,14 +32,13 @@ def create_app():
     app.register_blueprint(views, url_prefix="/")
     app.register_blueprint(auth, url_prefix="/")
 
-    from .models import User, Tweet, Follow, Comment, Like
+    from .models import User, Tweet, Follow, Like
 
     with app.app_context():
         db.create_all()
         User.loadUserData()
         Follow.loadFollowData()
         Tweet.loadTweetData()
-        Comment.loadCommentData()
         Like.loadLikeData()
 
     login_manager = LoginManager()

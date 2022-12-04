@@ -75,7 +75,7 @@ def register():
         pwd = request.form["pwd"]
         pwd_c = request.form["pwd2"]
         #Steps to check the entries
-        if User.query.filter_by(username=usr_name).first():
+        if dictUsernameToUID[usr_name]:
             flash("Username already exists, choose another", category="error")
             return redirect(url_for("auth.register"))
         if User.query.filter_by(email=mail).first():
