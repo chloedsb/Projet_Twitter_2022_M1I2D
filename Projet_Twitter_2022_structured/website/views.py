@@ -32,7 +32,7 @@ def sort_tweets(lists):
     output = []
     q = PriorityQueue()
     for l in lists:
-        if l:
+        if l.size>0:
             q.put((-(l.head.data.date.timestamp()), l.head))
     while not q.empty():
         val, twt = q.get()
