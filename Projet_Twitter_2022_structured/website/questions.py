@@ -7,6 +7,7 @@ def get_symetric_relationship():
     for uid in dictFollowing:
         for uid2 in dictFollowing[uid]:
             follow_relationship.append((uid, uid2))
+    #Actual algorithm
     symetric_relations = set()
     temp = set()
     for uid, uid2 in follow_relationship:

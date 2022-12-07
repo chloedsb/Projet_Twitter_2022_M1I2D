@@ -166,7 +166,7 @@
                                     <p href="#" class="d-block text-decoration-none me-3">{{tweet.dictRetweets|length}}</p>
 
                                     {% if current_user.username == dictUIDToUser[tweet.uid].username %}
-                                    <a href="/delete/{{twt.id}}" class="text-decoration-none text-danger"><i class="bi bi-trash3"></i></a>
+                                    <a href="/delete/{{tweet.id}}" class="text-decoration-none text-danger"><i class="bi bi-trash3"></i></a>
                                     {% endif %}
 
                             {% endif %}

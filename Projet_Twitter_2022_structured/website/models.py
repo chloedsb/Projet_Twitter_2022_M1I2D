@@ -17,14 +17,14 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(64))
     pwd = db.Column(db.Integer) #Integer because it is hashed password
 
-    def __init__(self, username, email, pwd):
-        self.init_on_load()
-        super(User, self).__init__(username=username, email=email, pwd=pwd)
-
     @orm.reconstructor
     def init_on_load(self):
         self.like_set = set()
         self.retweet_set = set()
+
+    def __init__(self, username, email, pwd):
+        self.init_on_load()
+        super(User, self).__init__(username=username, email=email, pwd=pwd)
 
     def __hash__(self):
         return self.id
@@ -139,16 +139,16 @@ class Tweet(db.Model):
     content = db.Column(db.String(2048))
     date = db.Column(db.DateTime(timezone=True), default=func.now())
 
-    def __init__(self, uid, pid, title, content, date):
-        self.init_on_load()
-        super(Tweet, self).__init__(uid=uid, pid=pid, title=title, content=content, date=date)
-
     @orm.reconstructor
     def init_on_load(self):
         # Instance variables during the first load
         self.dictLikes = dict()
         self.dictRetweets = dict()
         self.comments = set()
+
+    def __init__(self, uid, pid, title, content, date):
+        self.init_on_load()
+        super(Tweet, self).__init__(uid=uid, pid=pid, title=title, content=content, date=date)
 
     def __hash__(self):
         return self.id
@@ -219,9 +219,13 @@ class Tweet(db.Model):
             #If cascade we don't remove the comment from tweets.comments because tweet will be deleted altogether
         #Deleting likes
         for uid, like in self.dictLikes.items():
+            dictUIDToUser[uid].like_set.remove(self.id)
             like.delete_from_db()
         #Deleting retweets
         for uid, rt in self.dictRetweets.items():
+            node = dictRtIdToNode[rt.id]
+            dictReTweets[uid].remove(node)
+            dictUIDToUser[uid].retweet_set.remove(self.id)
             rt.delete_from_db()
         dictIDToTwt.pop(self.id)
         #Deleting the tweet from the linked list containing all the user's tweets
