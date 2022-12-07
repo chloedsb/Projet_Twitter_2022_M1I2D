@@ -119,7 +119,8 @@ class Follow(db.Model):
         # Loading the data from the database at launch
         fs = Follow.query.all()
         for f in fs:
-            dictUIDToUser[f.id_follower].follow(f.id_followee, f)
+            dictFollowing[f.id_follower][f.id_followee] = f
+            dictFollowed[f.id_followee][f.id_follower] = f
 
     def add_to_db(self):
         db.session.add(self)
