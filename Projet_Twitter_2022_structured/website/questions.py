@@ -42,7 +42,7 @@ def get_username_of_symetric_relationship():
         usernames.add(dict_uid_to_name[uid2])
     return usernames
 
-def get_username_of_symetric_relationship():
+def get_username_of_symetric_relationship2():
     #Question 1.b (with our data structure)
     usernames = set()
     symetric_relations = get_symetric_relationship2()
