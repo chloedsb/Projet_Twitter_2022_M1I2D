@@ -1,7 +1,7 @@
-from flask import Blueprint, session, request, redirect, url_for, flash, render_template
+from flask import Blueprint, request, redirect, url_for, flash, render_template
 
 from .linkedLists import linked_list
-from .models import User, Tweet, Follow
+from .models import User
 from . import dictFollowing, dictFollowed, dictUIDToUser, dictUsernameToUID, dictTweets, mailSet, dictReTweets
 from flask_login import login_user, login_required, logout_user, current_user
 import re

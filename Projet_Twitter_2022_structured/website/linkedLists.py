@@ -14,6 +14,7 @@ class Node:
 class linked_list:
     def __init__(self):
         self.head = None
+        self.tail = None
         self.size = 0
 
     # Adding data elements
@@ -22,6 +23,8 @@ class linked_list:
         newNode.next = self.head
         if self.head is not None:
             self.head.prev = newNode
+        if not self.tail:
+            self.tail = newNode
         self.head = newNode
         self.size += 1
         return newNode
@@ -33,6 +36,8 @@ class linked_list:
             self.head = node.next
         if node.has_next():
             node.next.prev = node.prev
+        else:
+            self.tail = node.prev
         self.size -= 1
 
     def __iter__(self):

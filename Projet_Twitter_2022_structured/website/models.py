@@ -17,12 +17,6 @@ class User(db.Model, UserMixin):
     email = db.Column(db.String(64))
     pwd = db.Column(db.Integer) #Integer because it is hashed password
 
-    def __hash__(self):
-        return self.id
-
-    def __eq__(self, other):
-        return self.id == other.id
-
     def __init__(self, username, email, pwd):
         self.init_on_load()
         super(User, self).__init__(username=username, email=email, pwd=pwd)
@@ -31,6 +25,12 @@ class User(db.Model, UserMixin):
     def init_on_load(self):
         self.like_set = set()
         self.retweet_set = set()
+
+    def __hash__(self):
+        return self.id
+
+    def __eq__(self, other):
+        return self.id == other.id
 
     @staticmethod
     def loadUserData():
@@ -74,7 +74,7 @@ class User(db.Model, UserMixin):
     def follow(self, uid):
         f = Follow(
             id_follower=current_user.id,
-            id_followee=id
+            id_followee=uid
         )
         f.add_to_db()
         dictFollowing[self.id][uid] = f
@@ -143,18 +143,18 @@ class Tweet(db.Model):
         self.init_on_load()
         super(Tweet, self).__init__(uid=uid, pid=pid, title=title, content=content, date=date)
 
-    def __hash__(self):
-        return self.id
-
-    def __eq__(self, other):
-        return self.id == other.id
-
     @orm.reconstructor
     def init_on_load(self):
         # Instance variables during the first load
         self.dictLikes = dict()
         self.dictRetweets = dict()
         self.comments = set()
+
+    def __hash__(self):
+        return self.id
+
+    def __eq__(self, other):
+        return self.id == other.id
 
     def is_a_comment(self):
         return not (self.pid == 0)
@@ -274,7 +274,9 @@ class Retweet(db.Model):
         rts = Retweet.query.all()
         for rt in rts:
             twt = dictIDToTwt[rt.t_id]
-            twt.retweet(rt.uid)
+            dictUIDToUser[rt.uid].retweet_set.add(twt.id)
+            twt.dictRetweets[rt.uid] = rt
+            dictRtIdToNode[rt.id] = dictReTweets[rt.uid].append(rt)
 
     def add_to_db(self):
         db.session.add(self)
@@ -297,7 +299,8 @@ class Like(db.Model):
         likes = Like.query.all()
         for like in likes:
             twt = dictIDToTwt[like.t_id]
-            twt.like(like.uid)
+            dictUIDToUser[like.uid].like_set.add(twt.id)
+            twt.dictLikes[like.uid] = like
 
     def add_to_db(self):
         db.session.add(self)

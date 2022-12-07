@@ -31,7 +31,7 @@
             <ul class="list-group">
                 {% for f in followers %}
                 <li class="list-group-item">
-            <a href="/profile/{{f.username}}">@{{f.username}}</a></li>
+            <a href="/profile/{{f.username}}">@{{dictUIDToUser[f].username}}</a></li>
             {% endfor %}
               </ul>
         </div>
@@ -52,7 +52,7 @@
             <ul class="list-group">
                 {% for f in followings %}
                 <li class="list-group-item">
-            <a href="/profile/{{f.username}}">@{{f.username}}</a></li>
+            <a href="/profile/{{f.username}}">@{{dictUIDToUser[f].username}}</a></li>
             {% endfor %}
               </ul>
             

@@ -40,15 +40,14 @@ def sort_tweets(lists):
     q = PriorityQueue()
     for l in lists:
         if l.size>0:
-            q.put((-(l.head.data.date.timestamp()), l.head))
+            q.put(((l.tail.data.date.timestamp()), l.tail))
     output = linked_list()
     while not q.empty():
         val, twt = q.get()
         output.append(twt.data)
-        if twt.has_next():
-            q.put((-(twt.next.data.date.timestamp()), twt.next))
+        if twt.has_prev():
+            q.put(((twt.prev.data.date.timestamp()), twt.prev))
     return output
-
 
 @views.route("/feed", methods=["GET","POST"])
 @login_required
@@ -101,16 +100,7 @@ def user(usr):
     tweets = dictTweets[id]
     followings = user.get_following()
     followers = user.get_followers()
-    followings_users = [None]*len(followings)
-    followers_users = [None]*len(followers)
-    index=0
-    for uid in followings:
-        followings_users[index] = dictUIDToUser[uid]
-        index+=1
-    index=0
-    for uid in followers:
-        followers_users[index] = dictUIDToUser[uid]
-    return render_template("user.html",b=b, tweets=tweets, usr=user, is_following=value, followings=followings_users, followers=followers_users, dictIDToTwt=dictIDToTwt, dictUIDToUser=dictUIDToUser)
+    return render_template("user.html",b=b, tweets=tweets, usr=user, is_following=value, followings=followings, followers=followers, dictIDToTwt=dictIDToTwt, dictUIDToUser=dictUIDToUser)
     
 
 @views.route("/comments/<twt_id>", methods=["GET","POST"])

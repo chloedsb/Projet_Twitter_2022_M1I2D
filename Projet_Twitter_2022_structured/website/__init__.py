@@ -1,6 +1,5 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from os import path
 from flask_login import LoginManager
 
 #we use expire_on_commit false to be able to call attributes of our classes without having to look in the data base again
@@ -44,7 +43,7 @@ def create_app():
     app.register_blueprint(views, url_prefix="/")
     app.register_blueprint(auth, url_prefix="/")
 
-    from .models import User, Tweet, Follow, Like
+    from .models import User, Tweet, Follow, Like, Retweet
 
     with app.app_context():
         db.create_all()
@@ -52,6 +51,7 @@ def create_app():
         Follow.loadFollowData()
         Tweet.loadTweetData()
         Like.loadLikeData()
+        Retweet.loadRetweetData()
 
     login_manager = LoginManager()
     login_manager.login_view = "views.home"
