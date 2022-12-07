@@ -8,9 +8,10 @@
     <title>My Twitter</title>
     <link rel="icon" type="image/x-icon" href="{{url_for('static', filename='images/Twitter-logo.svg.png')}}">
     <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap.min.css')}}">
+    <link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
 </head>
 
-<body>
+<body class="body-centered text-center">
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
     {% for category, msg in messages %}
@@ -27,13 +28,23 @@
     {% endif %}
     {% endwith %}
     
-    <a class="btn btn-outline-primary" href="/login" role="button">Login</a>
-    <a class="btn btn-outline-primary" href="/register" role="button">Register</a>
+        <main class="home w-100 m-auto">
+          <form>
+            <img class="mb-4" src="{{url_for('static', filename='images/Twitter-logo.svg.png')}}" alt="MyTwitter" width="72" height="57">
+            <h1 class="h3 mb-3 fw-normal">Welcome to My Twitter</h1>
+                
+            <a class="w-100 btn btn-lg btn-primary mt-4" href="/login" role="button">Login</a>
+            <a class="w-100 btn btn-lg btn-outline-primary mt-3" href="/register" role="button">Register</a>
+
+            <p class="mt-5 mb-3 text-muted">@Desbles Chloé, Gard Clara</p>
+          </form>
+        </main>
+
+
+
     <!-- <div class="row justify-content-md-center pt-3">
         <div class="col-6">
-            <div class="my-3 p-3 bg-body rounded shadow-sm">
-                <a class="btn btn-outline-primary" href="/login" role="button">Login</a>
-                <a class="btn btn-outline-primary" href="/register" role="button">Register</a>
+                <div class="my-3 p-3 bg-body rounded shadow-sm">
             </div>
         </div>
     </div> -->
