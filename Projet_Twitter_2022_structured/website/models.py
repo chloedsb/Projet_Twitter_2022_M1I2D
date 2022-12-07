@@ -1,7 +1,7 @@
 from sqlalchemy import orm
 
-from . import db, dictFollowing, dictFollowed, dictUIDToUser, dictUsernameToUID, dictTweets, dictComments, dictIDToTwt, \
-    dictWords, dictTwtIdToNode
+from . import db, dictFollowing, dictFollowed, dictUIDToUser, dictUsernameToUID, dictTweets, dictIDToTwt, \
+    dictWords, dictTwtIdToNode, dictReTweets, dictRtIdToNode
 from sqlalchemy.sql import func
 from flask_login import UserMixin, current_user
 from datetime import datetime
@@ -15,7 +15,7 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True, nullable=False)
     username = db.Column(db.String(24))
     email = db.Column(db.String(64))
-    pwd = db.Column(db.String(64))
+    pwd = db.Column(db.Integer) #Integer because it is hashed password
 
     def __hash__(self):
         return self.id
@@ -23,8 +23,18 @@ class User(db.Model, UserMixin):
     def __eq__(self, other):
         return self.id == other.id
 
+    def __init__(self, username, email, pwd):
+        self.init_on_load()
+        super(User, self).__init__(username=username, email=email, pwd=pwd)
+
+    @orm.reconstructor
+    def init_on_load(self):
+        self.like_set = set()
+        self.retweet_set = set()
+
     @staticmethod
     def loadUserData():
+        #Loading the data from the database at launch
         us = User.query.all()
         for u in us:
             dictUIDToUser[u.id] = u
@@ -32,6 +42,7 @@ class User(db.Model, UserMixin):
             dictFollowing[u.id] = dict()
             dictFollowed[u.id] = dict()
             dictTweets[u.id] = linked_list()
+            dictReTweets[u.id] = linked_list()
 
     def add_to_db(self):
         db.session.add(self)
@@ -41,7 +52,31 @@ class User(db.Model, UserMixin):
         db.session.delete(self)
         db.session.commit()
 
-    def follow(self, uid, f):
+    def tweet(self, content, pid=0, title=""):
+        new_tweet = Tweet(
+            uid=self.id,
+            pid=pid,
+            title=title,
+            content=content,
+            date=datetime.now()
+        )
+        new_tweet.add_to_db()
+        dictTwtIdToNode[new_tweet.id] = dictTweets[current_user.id].append(new_tweet)
+        dictIDToTwt[new_tweet.id] = new_tweet
+        if new_tweet.is_a_comment():
+            dictIDToTwt[pid].comments.add(new_tweet)
+        words = re.findall(r'\w+', new_tweet.content)
+        for word in words:
+            if word not in dictWords:
+                dictWords[word] = set()
+            dictWords[word].add(new_tweet)
+
+    def follow(self, uid):
+        f = Follow(
+            id_follower=current_user.id,
+            id_followee=id
+        )
+        f.add_to_db()
         dictFollowing[self.id][uid] = f
         dictFollowed[uid][self.id] = f
 
@@ -72,15 +107,6 @@ class User(db.Model, UserMixin):
                     sugg.add(dictUIDToUser[user].username)
         return sugg
 
-    def get_followers_of_followers(self):
-        #Question 2
-        fof = set()
-        for uid in dictFollowed[self.id]:
-            for user in dictFollowed[uid]:
-                if user not in dictFollowed[self.id]:
-                    fof.add(dictUIDToUser[user].username)
-        return fof
-
 
 class Follow(db.Model):
     __tablename__ = "follow"
@@ -90,6 +116,7 @@ class Follow(db.Model):
 
     @staticmethod
     def loadFollowData():
+        # Loading the data from the database at launch
         fs = Follow.query.all()
         for f in fs:
             dictUIDToUser[f.id_follower].follow(f.id_followee, f)
@@ -107,7 +134,7 @@ class Tweet(db.Model):
     __tablename__ = "tweet"
     id = db.Column("id", db.Integer, primary_key=True, nullable=False)
     uid = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    pid = db.Column(db.Integer, db.ForeignKey("tweet.id"), nullable=False)
+    pid = db.Column(db.Integer, db.ForeignKey("tweet.id"), nullable=False)#0 if it is a normal tweet, the tweet ID it is answering to if it is a reply
     title = db.Column(db.String(256))
     content = db.Column(db.String(2048))
     date = db.Column(db.DateTime(timezone=True), default=func.now())
@@ -144,9 +171,11 @@ class Tweet(db.Model):
             uid=uid
         )
         like.add_to_db()
+        dictUIDToUser[uid].like_set.add(self.id)
         self.dictLikes[uid] = like
 
     def unlike(self, uid):
+        dictUIDToUser[uid].like_set.remove(self.id)
         self.dictLikes.pop(uid).delete_from_db()
 
     def retweet(self, uid):
@@ -156,10 +185,16 @@ class Tweet(db.Model):
             date=datetime.now()
         )
         rt.add_to_db()
+        dictUIDToUser[uid].retweet_set.add(self.id)
         self.dictRetweets[uid] = rt
+        dictRtIdToNode[rt.id] = dictReTweets[uid].append(rt)
 
     def unretweet(self, uid):
-        self.dictRetweets.pop(uid).delete_from_db()
+        rt = self.dictRetweets.pop(uid)
+        node = dictRtIdToNode[rt.id]
+        dictReTweets[uid].remove(node)
+        dictUIDToUser[uid].retweet_set.remove(self.id)
+        rt.delete_from_db()
 
     def retweeted_by_current(self):
         return self.retweeted_by(current_user.id)
@@ -168,26 +203,28 @@ class Tweet(db.Model):
         return uid in self.dictRetweets
 
     def delete(self, cascade=False):
-        # Delete all the retweets object from db & from ds
-        # ...
         # Delete tweet from dictWords
         words = re.findall(r'\w+', self.content)
         for word in words:
             dictWords[word].remove(self)
             if not dictWords[word]:
                 dictWords.pop(word)
-        # Deletions
+        #Deleting comments
         for com in self.comments:
             com.delete(True)
+            #Cascade = True so that we don't modify self.comments while looping through it
         if self.is_a_comment():
             tweet = dictIDToTwt[self.pid]
             if not cascade: tweet.comments.remove(self)
+            #If cascade we don't remove the comment from tweets.comments because tweet will be deleted altogether
+        #Deleting likes
         for uid, like in self.dictLikes.items():
             like.delete_from_db()
+        #Deleting retweets
         for uid, rt in self.dictRetweets.items():
             rt.delete_from_db()
         dictIDToTwt.pop(self.id)
-
+        #Deleting the tweet from the linked list containing all the user's tweets
         node = dictTwtIdToNode[self.id]
         l = dictTweets[self.uid]
         l.remove(node)
@@ -195,20 +232,19 @@ class Tweet(db.Model):
 
     @staticmethod
     def loadTweetData():
+        # Loading the data from the database at launch
         twts = Tweet.query.all()
         for twt in twts:
-            dictTweets[twt.uid].append(twt)  # idem ?
-            dictTwtIdToNode[twt.id] = dictTweets[twt.uid].head
+            dictTwtIdToNode[twt.id] = dictTweets[twt.uid].append(twt)
             dictIDToTwt[twt.id] = twt
             if twt.is_a_comment():
                 dictIDToTwt[twt.pid].comments.add(twt)
-                print(twt.content)
-            # Remplir dictWords
+            # Instancing the dictionary linking the tweets and words for the search functionality
             words = re.findall(r'\w+', twt.content)
             for word in words:
                 if word not in dictWords:
-                    dictWords[word] = []
-                dictWords[word].append(twt)
+                    dictWords[word] = set()
+                dictWords[word].add(twt)
 
     def add_to_db(self):
         db.session.add(self)
@@ -226,8 +262,15 @@ class Retweet(db.Model):
     uid = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     date = db.Column(db.DateTime(timezone=True), default=func.now())
 
+    def __hash__(self):
+        return self.id
+
+    def __eq__(self, other):
+        return self.id == other.id
+
     @staticmethod
     def loadRetweetData():
+        # Loading the data from the database at launch
         rts = Retweet.query.all()
         for rt in rts:
             twt = dictIDToTwt[rt.t_id]
@@ -250,6 +293,7 @@ class Like(db.Model):
 
     @staticmethod
     def loadLikeData():
+        # Loading the data from the database at launch
         likes = Like.query.all()
         for like in likes:
             twt = dictIDToTwt[like.t_id]

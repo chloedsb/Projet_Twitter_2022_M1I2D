@@ -69,16 +69,16 @@
                             <p href="#" class="d-block text-decoration-none me-3">{{ cmts[i].comments|length }}</p>
 
                             {% if cmts[i].liked_by_current() %}
-                            <a href="/unlike/{{cmts[i].id}}?redirect=feed" class="text-decoration-none me-1"><i class="bi bi-suit-heart-fill"></i> Unlike</a>
+                            <a href="/unlike/{{cmts[i].id}}?redirect={{twt.id}}" class="text-decoration-none me-1"><i class="bi bi-suit-heart-fill"></i> Unlike</a>
                             {% else %}
-                            <a href="/like/{{cmts[i].id}}?redirect=feed" class="text-decoration-none me-1"><i class="bi bi-suit-heart"></i> Like</a>
+                            <a href="/like/{{cmts[i].id}}?redirect={{twt.id}}" class="text-decoration-none me-1"><i class="bi bi-suit-heart"></i> Like</a>
                             {% endif %}
                             <p href="#" class="d-block text-decoration-none me-3">{{cmts[i].dictLikes|length}}</p>
 
                             {% if cmts[i].retweeted_by_current() %}
-                            <a href="/unretweet/{{cmts[i].id}}?redirect=feed" class="text-decoration-none me-1 font-weight-bold"><i class="bi-repeat-1"></i> Unretweet</a>
+                            <a href="/unretweet/{{cmts[i].id}}?redirect={{twt.id}}" class="text-decoration-none me-1 font-weight-bold"><i class="bi-repeat-1"></i> Unretweet</a>
                             {% else %}
-                            <a href="/retweet/{{cmts[i].id}}?redirect=feed" class="text-decoration-none me-1 font-weight-bold"><i class="bi-repeat-1"></i> Retweet</a>
+                            <a href="/retweet/{{cmts[i].id}}?redirect={{twt.id}}" class="text-decoration-none me-1 font-weight-bold"><i class="bi-repeat-1"></i> Retweet</a>
                             {% endif %}
                             <p href="#" class="d-block text-decoration-none me-3">{{cmts[i].dictRetweets|length}}</p>
 

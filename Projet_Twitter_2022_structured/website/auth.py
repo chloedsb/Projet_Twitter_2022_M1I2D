@@ -2,11 +2,9 @@ from flask import Blueprint, session, request, redirect, url_for, flash, render_
 
 from .linkedLists import linked_list
 from .models import User, Tweet, Follow
-from . import dictFollowing, dictFollowed, dictUIDToUser, dictUsernameToUID, dictTweets
+from . import dictFollowing, dictFollowed, dictUIDToUser, dictUsernameToUID, dictTweets, mailSet, dictReTweets
 from flask_login import login_user, login_required, logout_user, current_user
 import re
-#from werkzeug.security import generate_password_hash, check_password_hash
-#in db: password = generate_password_hash(pwd1, method='sha256')
 
 auth = Blueprint('auth', __name__)
 
@@ -17,11 +15,11 @@ def login():
             return redirect(url_for("views.feed"))
         return render_template("login.html")
     if request.method == "POST":
-        mail = request.form["mail"]
+        name = request.form["name"]
         pwd = request.form["pwd"]
-        user = User.query.filter_by(email=mail).first()
+        user = dictUIDToUser.get(dictUsernameToUID.get(name))
         if user:
-            if not(user.pwd == pwd):
+            if not(user.pwd == pwd.__hash__()):
                 flash("Incorrect password", category="error")
                 return redirect(url_for("auth.login"))
             else:
@@ -29,7 +27,7 @@ def login():
                 flash("You have been logged in succesfully !", category="success")
                 return redirect(url_for("views.feed"))
         #Si user == None
-        flash("We do not know your mail", category="error")
+        flash("There is no account with this username", category="error")
         return redirect(url_for("auth.login"))
 
 @auth.route("/logout")
@@ -56,13 +54,7 @@ def check_password(password):
         'lowercase_error' : lowercase_error,
     }
 
-messages = {
-    'length_error' : "Password must contains at least 8 characters",
-    'length_error_2' : "Password must contains at most 64 characters",
-    'digit_error' : "Password must contains at least 1 digit",
-    'uppercase_error' : "Password must contains at least 1 uppercase",
-    'lowercase_error' : "Password must contains at least 1 lowercase"
-    }
+
 
 
 @auth.route("/register", methods=["GET","POST"])
@@ -80,7 +72,7 @@ def register():
         if usr_name in dictUsernameToUID:
             flash("Username already exists, choose another", category="error")
             return redirect(url_for("auth.register"))
-        if User.query.filter_by(email=mail).first():
+        if mail in mailSet:
             flash("Email address already exists, please login", category="error")
             return redirect(url_for("auth.login"))
         if pwd != pwd_c:
@@ -88,28 +80,31 @@ def register():
             return redirect(url_for("auth.register"))
         pwd_check = check_password(pwd)
         if pwd_check['length_error']:
-            flash(messages['length_error'], category="error")
+            flash("Password must contains at least 8 characters", category="error")
         if pwd_check['length_error_2']:
-            flash(messages['length_error_2'], category="error")
+            flash("Password must contains at most 64 characters", category="error")
         if pwd_check['digit_error']:
-            flash(messages['digit_error'], category="error")
+            flash("Password must contains at least 1 digit", category="error")
         if pwd_check['uppercase_error']:
-            flash(messages['uppercase_error'], category="error")
+            flash("Password must contains at least 1 uppercase", category="error")
         if pwd_check['lowercase_error']:
-            flash(messages['lowercase_error'], category="error")
+            flash("Password must contains at least 1 lowercase", category="error")
         if pwd_check['password_ok']:
             new_user = User(
             username = usr_name,
             email = mail,
-            pwd = pwd
+            pwd = pwd.__hash__()
             )
             new_user.add_to_db()
+            #Initiate data structures for the new user
             dictUIDToUser[new_user.id] = new_user
             dictUsernameToUID[new_user.username] = new_user.id
             dictFollowing[new_user.id] = dict()
             dictFollowed[new_user.id] = dict()
             dictTweets[new_user.id] = linked_list()
-            #User is logged in
+            dictReTweets[new_user.id] = linked_list()
+            mailSet.add(mail)
+            #Connecting the new user
             login_user(new_user, remember=True)
             flash("You are succesfully registered", category="success")
             return redirect(url_for("views.feed"))

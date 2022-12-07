@@ -80,20 +80,21 @@
                 <div class="my-3 p-3 bg-body rounded shadow-sm">
                     <div class="text-muted pt-3">
                         <div class="pb-1 mb-0 small lh-sm border-bottom">
-                            {% if tweets[i].is_a_comment() %}
-                                <div class="d-flex bg-secondary text-secondary mx-1">   Replying to : 
-                                    <a href="/comments/{{tweets[i].pid}}" class="link-secondary text-decoration-none ms-1">@{{dictUIDToUser[dictIDToTwt[tweets[i].pid].uid].username}}</a>
-                                </div>
-                            {% endif %}
+                            {% if tweets[i].content is defined %}
+                                {% if tweets[i].is_a_comment() %}
+                                    <div class="d-flex bg-secondary text-secondary mx-1">   Replying to :
+                                        <a href="/comments/{{tweets[i].pid}}" class="link-secondary text-decoration-none ms-1">@{{dictUIDToUser[dictIDToTwt[tweets[i].pid].uid].username}}</a>
+                                    </div>
+                                {% endif %}
                             
-                            <strong>
-                                <p>{{tweets[i].title}}</p>
-                            </strong>
-                            <div class="container-fluid">
-                                <p class="text-justify">  
-                                    {{tweets[i].content}}
-                                </p>
-                            </div>
+                                <strong>
+                                    <p>{{tweets[i].title}}</p>
+                                </strong>
+                                <div class="container-fluid">
+                                    <p class="text-justify">
+                                        {{tweets[i].content}}
+                                    </p>
+                                </div>
                             <div class="d-flex justify-content-between mx-2">
                                 <div class="d-flex justify-content-start">
                                     <a href="/profile/{{dictUIDToUser[tweets[i].uid].username}}" class="d-block text-decoration-none">@{{dictUIDToUser[tweets[i].uid].username}}</a>
@@ -121,6 +122,54 @@
                                     {% if current_user.username == dictUIDToUser[tweets[i].uid].username %}
                                     <a href="/delete/{{tweets[i].id}}" class="text-decoration-none text-danger"><i class="bi bi-trash3"></i></a>
                                     {% endif %}
+                            {% else %}
+                                <div class="d-flex bg-secondary text-secondary mx-1">   Retweeted by :
+                                    <a href="/comments/{{tweets[i].pid}}" class="link-secondary text-decoration-none ms-1">@{{dictUIDToUser[dictIDToTwt[tweets[i].t_id].uid].username}}</a>
+                                </div>
+                                {% set tweet = dictIDToTwt[tweets[i].t_id] %}
+                                {% if tweet.is_a_comment() %}
+                                    <div class="d-flex bg-secondary text-secondary mx-1">   Replying to :
+                                        <a href="/comments/{{tweets[i].pid}}" class="link-secondary text-decoration-none ms-1">@{{dictUIDToUser[dictIDToTwt[tweet.pid].uid].username}}</a>
+                                    </div>
+                                {% endif %}
+
+                                <strong>
+                                    <p>{{tweet.title}}</p>
+                                </strong>
+                                <div class="container-fluid">
+                                    <p class="text-justify">
+                                        {{tweet.content}}
+                                    </p>
+                                </div>
+                                                                <div class="d-flex justify-content-between mx-2">
+                                <div class="d-flex justify-content-start">
+                                    <a href="/profile/{{dictUIDToUser[tweet.uid].username}}" class="d-block text-decoration-none">@{{dictUIDToUser[tweet.uid].username}}</a>
+                                    <p href="#" class="d-block text-decoration-none mx-1">-</p>
+                                    <p href="#" class="d-block text-decoration-none">{{tweet.date.strftime("%d/%m/%y %H:%M")}}</p>
+                                </div>
+                                <div class="d-flex justify-content-start">
+                                    <a href="/comments/{{tweet.id}}" class="text-decoration-none me-1"><i class="bi bi-chat-text"></i> Comments</a>
+                                    <p href="#" class="d-block text-decoration-none me-3">{{ tweet.comments|length }}</p>
+
+                                    {% if tweet.liked_by_current() %}
+                                    <a href="/unlike/{{tweet.id}}?redirect=feed" class="text-decoration-none me-1"><i class="bi bi-suit-heart-fill"></i> Unlike</a>
+                                    {% else %}
+                                    <a href="/like/{{tweet.id}}?redirect=feed" class="text-decoration-none me-1"><i class="bi bi-suit-heart"></i> Like</a>
+                                    {% endif %}
+                                    <p href="#" class="d-block text-decoration-none me-3">{{tweet.dictLikes|length}}</p>
+
+                                    {% if tweet.retweeted_by_current() %}
+                                    <a href="/unretweet/{{tweet.id}}?redirect=feed" class="text-decoration-none me-1 font-weight-bold"><i class="bi-repeat-1"></i> Unretweet</a>
+                                    {% else %}
+                                    <a href="/retweet/{{tweet.id}}?redirect=feed" class="text-decoration-none me-1 font-weight-bold"><i class="bi-repeat-1"></i> Retweet</a>
+                                    {% endif %}
+                                    <p href="#" class="d-block text-decoration-none me-3">{{tweet.dictRetweets|length}}</p>
+
+                                    {% if current_user.username == dictUIDToUser[tweet.uid].username %}
+                                    <a href="/delete/{{tweets[i].id}}" class="text-decoration-none text-danger"><i class="bi bi-trash3"></i></a>
+                                    {% endif %}
+
+                            {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -135,7 +184,7 @@
 
 
 
-
+</div>
 </div>
 
 {% endblock %}
