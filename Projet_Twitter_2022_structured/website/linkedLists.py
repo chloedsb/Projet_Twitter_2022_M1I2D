@@ -48,4 +48,5 @@ class Linked_list_iterator:
         if self.current:
             result = self.current
             self.current = self.current.next
+            return result.data
         raise StopIteration

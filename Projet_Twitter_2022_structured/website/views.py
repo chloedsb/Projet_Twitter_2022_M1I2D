@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from . import dictUIDToUser, dictUsernameToUID, dictTweets, dictIDToTwt, dictWords, dictReTweets, mailSet, \
     dictTwtIdToNode
+from .linkedLists import linked_list
 from queue import PriorityQueue
 from flask_login import login_required, current_user
 from datetime import datetime
@@ -16,13 +17,13 @@ def home():
 @login_required
 def search():
     typed = request.form["username"]
-    if typed.startswith("word:"):
+    """if typed.startswith("word:"):
         typed = typed.replace("word:", "")
         twts = dictWords.get(typed)
         if not twts:
             flash("Sorry, no results for your search", category="error")
             return redirect(url_for("views.feed"))
-        return render_template("display.html", tweets=twts, word=typed, dictUIDToUser=dictUIDToUser)
+        return render_template("display.html", tweets=twts, word=typed, dictUIDToUser=dictUIDToUser)"""
     id = dictUsernameToUID.get(typed)
     if id:
         return redirect(url_for("views.user", usr=typed))
@@ -36,18 +37,14 @@ def search():
 
 def sort_tweets(lists):
     #PriorityQueue sort because all lists are previously sorted
-    size = 0
     q = PriorityQueue()
     for l in lists:
         if l.size>0:
             q.put((-(l.head.data.date.timestamp()), l.head))
-            size+=l.size
-    output = [None]*size
-    index = 0
+    output = linked_list()
     while not q.empty():
         val, twt = q.get()
-        output[index] = twt.data
-        index+=1
+        output.append(twt.data)
         if twt.has_next():
             q.put((-(twt.next.data.date.timestamp()), twt.next))
     return output
@@ -113,12 +110,7 @@ def user(usr):
     index=0
     for uid in followers:
         followers_users[index] = dictUIDToUser[uid]
-    tweets_list = [None] * tweets.size
-    twt = tweets.head
-    for i in range(tweets.size):
-        tweets_list[i] = twt.data
-        twt = twt.next
-    return render_template("user.html",b=b, tweets=tweets_list, usr=user, is_following=value, followings=followings_users, followers=followers_users, dictIDToTwt=dictIDToTwt, dictUIDToUser=dictUIDToUser)
+    return render_template("user.html",b=b, tweets=tweets, usr=user, is_following=value, followings=followings_users, followers=followers_users, dictIDToTwt=dictIDToTwt, dictUIDToUser=dictUIDToUser)
     
 
 @views.route("/comments/<twt_id>", methods=["GET","POST"])
